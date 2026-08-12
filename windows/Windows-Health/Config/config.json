@@ -1,0 +1,32 @@
+{
+  "Provider": {
+    "Name": "Zabbix",
+    "Enabled": true
+  },
+  "Zabbix": {
+    "Server": "10.10.1.5",
+    "Port": 10051,
+    "Hostname": "",
+    "SenderPath": ""
+  },
+  "Logging": {
+    "KeepFiles": 10,
+    "ConsoleSummary": true
+  },
+  "Update": {
+    "AutoReboot": false,
+    "RebootDelayMinutes": 10,
+    "CleanupSoftwareDistribution": true,
+    "CleanupWindowsTemp": true,
+    "CleanupUserTemp": true,
+    "UserTempOlderThanDays": 7,
+    "RebootDelaySeconds": 300
+  },
+  "Time": {
+    "ExpectedTimeZone": "FLE Standard Time",
+    "MaxSyncAgeMinutes": 360
+  },
+  "Defender": {
+    "MaxSignatureAgeHours": 48
+  }
+}

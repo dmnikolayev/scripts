@@ -1,0 +1,106 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: b9d1f4badf1b4ef6882bdb9225ffa866
+    name: Templates/Modules
+  templates:
+  - uuid: 3f14394556e3454f81f60860c091d87d
+    template: Windows Time
+    name: Windows Time
+    description: Windows Time extension for Windows Health. Does not duplicate the standard Windows template W32Time service/local-time
+      items. Metrics are pushed with zabbix_sender.
+    groups:
+    - name: Templates/Modules
+    items:
+    - uuid: 1a953034b19f45e1b3bc30d2b3f44cd4
+      name: Time sync status
+      type: TRAP
+      key: wh.time.sync_status
+      history: 30d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Time
+      valuemap:
+        name: Health state
+      triggers:
+      - uuid: 0648387b2c8e4775a4fa677847126672
+        expression: last(/Windows Time/wh.time.sync_status)=0
+        name: Windows time synchronization is unhealthy on {HOST.NAME}
+        priority: HIGH
+    - uuid: 57e215433c814d819fc20066b5b5faf0
+      name: Time source
+      type: TRAP
+      key: wh.time.source
+      history: 30d
+      value_type: TEXT
+      tags:
+      - tag: Application
+        value: Windows Time
+    - uuid: 560e56f060b54130a1c84ed32746f5be
+      name: Time stratum
+      type: TRAP
+      key: wh.time.stratum
+      history: 30d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Time
+    - uuid: 1362a22198704a5d9c048d3530e08f54
+      name: Last sync age
+      type: TRAP
+      key: wh.time.last_sync_age
+      history: 30d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Time
+      units: m
+      triggers:
+      - uuid: a022e4e1738e4ef3a5525232f67f2028
+        expression: last(/Windows Time/wh.time.last_sync_age)>360
+        name: Windows time has not synchronized for more than 6 hours on {HOST.NAME}
+        priority: WARNING
+    - uuid: 617900b8c2e94f12a1f97e26f9dea8b8
+      name: Time zone
+      type: TRAP
+      key: wh.time.timezone
+      history: 30d
+      value_type: TEXT
+      tags:
+      - tag: Application
+        value: Windows Time
+    - uuid: 592229b3e5b14ea3b325d43501596735
+      name: Time zone expected
+      type: TRAP
+      key: wh.time.timezone_ok
+      history: 30d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Time
+      valuemap:
+        name: Health state
+      triggers:
+      - uuid: 0307eb454b934197b5a7a74c94459b4b
+        expression: last(/Windows Time/wh.time.timezone_ok)=0
+        name: Unexpected Windows time zone on {HOST.NAME}
+        priority: WARNING
+    - uuid: 8e103df316c04975b13b43d48f2b4b75
+      name: UTC offset
+      type: TRAP
+      key: wh.time.utc_offset
+      history: 30d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Time
+      units: h
+    valuemaps:
+    - uuid: 032e7376b7bf424db0800401e23fe7b2
+      name: Health state
+      mappings:
+      - value: '0'
+        newvalue: Problem
+      - value: '1'
+        newvalue: OK

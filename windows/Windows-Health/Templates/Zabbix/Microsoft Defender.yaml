@@ -1,0 +1,100 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: 625cf5de5ad24198b90731621079429a
+    name: Templates/Modules
+  templates:
+  - uuid: b3c73b6b76e44926990d69a9b60c8c55
+    template: Microsoft Defender
+    name: Microsoft Defender
+    description: Microsoft Defender extension for Windows Health. Does not duplicate WinDefend/MDCoreSvc service items from
+      the standard Windows template. Metrics are pushed with zabbix_sender.
+    groups:
+    - name: Templates/Modules
+    items:
+    - uuid: 2d6ac2312c8c4e25ac4928e143b6df32
+      name: Defender Antivirus
+      type: TRAP
+      key: wh.defender.antivirus
+      history: 30d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Microsoft Defender
+      valuemap:
+        name: Enabled state
+      triggers:
+      - uuid: cb31b46be4934d1aa13a20b35e8add66
+        expression: last(/Microsoft Defender/wh.defender.antivirus)=0
+        name: Microsoft Defender Antivirus is disabled on {HOST.NAME}
+        priority: HIGH
+    - uuid: 4ab6b4948df946748bca1d40d0a3913a
+      name: Real-time protection
+      type: TRAP
+      key: wh.defender.realtime
+      history: 30d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Microsoft Defender
+      valuemap:
+        name: Enabled state
+      triggers:
+      - uuid: 9f6772520a014b8aaaf7d5aa25e3e52e
+        expression: last(/Microsoft Defender/wh.defender.realtime)=0
+        name: Microsoft Defender real-time protection is disabled on {HOST.NAME}
+        priority: HIGH
+    - uuid: edf59955f830485c8cc0e9cc2f16f7da
+      name: Signature age
+      type: TRAP
+      key: wh.defender.signature_age
+      history: 30d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Microsoft Defender
+      units: h
+      triggers:
+      - uuid: 323744b502aa466fbfa6f8c0e81062c0
+        expression: last(/Microsoft Defender/wh.defender.signature_age)>48
+        name: Microsoft Defender signatures are older than 48 hours on {HOST.NAME}
+        priority: AVERAGE
+    - uuid: 5ae33a75731546909ec76c40bdf0e5fc
+      name: Signature version
+      type: TRAP
+      key: wh.defender.signature_version
+      history: 30d
+      value_type: TEXT
+      tags:
+      - tag: Application
+        value: Microsoft Defender
+    - uuid: 700aace95f384dcb8cacf287b0551fed
+      name: PUA protection
+      type: TRAP
+      key: wh.defender.pua
+      history: 30d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Microsoft Defender
+      valuemap:
+        name: Enabled state
+    - uuid: 76792cc0d9374ba49c8800071bbe1e76
+      name: Tamper protection
+      type: TRAP
+      key: wh.defender.tamper
+      history: 30d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Microsoft Defender
+      valuemap:
+        name: Enabled state
+    valuemaps:
+    - uuid: af88badf341b4fb6b57efa78d9b7a218
+      name: Enabled state
+      mappings:
+      - value: '0'
+        newvalue: Disabled
+      - value: '1'
+        newvalue: Enabled

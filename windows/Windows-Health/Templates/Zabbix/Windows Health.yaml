@@ -1,0 +1,307 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: 54c7abee7ea8486da2e0287b0b0eacd4
+    name: Templates/Modules
+  templates:
+  - uuid: 55c4275335b3472ca37ec7d8c00cc95a
+    template: Windows Health
+    name: Windows Health
+    description: 'Windows Health 0.8.0: Update, Cleanup and conditional Reboot.'
+    groups:
+    - name: Templates/Modules
+    items:
+    - uuid: faa51eb8bd59449d958249ce0f726c70
+      name: 'Update: Updates available'
+      type: TRAP
+      key: wh.update.available
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+    - uuid: aa0472413297487d89089223b415bd4a
+      name: 'Update: Available update count'
+      type: TRAP
+      key: wh.update.count
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+      triggers:
+      - uuid: 4c23a1ba8c7447879e23eba33d0e7a55
+        expression: last(/Windows Health/wh.update.count)>0
+        name: Windows updates are available on {HOST.NAME}
+        priority: WARNING
+    - uuid: 6a472a60ee3643d6b14e1297c7f68ede
+      name: 'Update: KB list'
+      type: TRAP
+      key: wh.update.kb
+      history: 90d
+      value_type: TEXT
+      tags:
+      - tag: Application
+        value: Windows Update
+    - uuid: 7f1608bb75dd41c3a4b46c62ae076d9b
+      name: 'Update: Pending reboot'
+      type: TRAP
+      key: wh.update.pending_reboot
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+      valuemap:
+        name: Yes/No
+      triggers:
+      - uuid: b8adf3a7e3df4348ab6078d8945e5f06
+        expression: last(/Windows Health/wh.update.pending_reboot)=1
+        name: Windows reboot is pending on {HOST.NAME}
+        priority: WARNING
+    - uuid: 41b176fedbea440a896382560ed1aa1a
+      name: 'Update: Result'
+      type: TRAP
+      key: wh.update.result
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+      valuemap:
+        name: Update result
+      triggers:
+      - uuid: 2813f8b38d69458ebea06b0f9416f34b
+        expression: last(/Windows Health/wh.update.result)=2
+        name: Windows Update installation failed on {HOST.NAME}
+        priority: HIGH
+      - uuid: 40b1e410afaf44a79d529514430adfd6
+        expression: last(/Windows Health/wh.update.result)=3
+        name: Windows Update installation partially succeeded on {HOST.NAME}
+        priority: AVERAGE
+    - uuid: 16c20acb3d7e4f339f083e9a0b298a64
+      name: 'Update: Last patch age'
+      type: TRAP
+      key: wh.update.last_patch_age
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+      units: d
+      triggers:
+      - uuid: 67cb7ccf2dcc4249a93159afe6b38bde
+        expression: last(/Windows Health/wh.update.last_patch_age)>45
+        name: Windows has not been successfully patched for more than 45 days on {HOST.NAME}
+        priority: AVERAGE
+    - uuid: fbcff9fbfea04f7488910ed1561748f6
+      name: 'Update: Last check'
+      type: TRAP
+      key: wh.update.last_check
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+      units: unixtime
+    - uuid: f6ab7bcba2f74adf85bb0b4cce4b2201
+      name: 'Update: Last successful install'
+      type: TRAP
+      key: wh.update.last_install
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Update
+      units: unixtime
+    - uuid: 35fc014e84f04eff9229eba7e8c9e67a
+      name: 'Update: Last error'
+      type: TRAP
+      key: wh.update.last_error
+      history: 90d
+      value_type: TEXT
+      tags:
+      - tag: Application
+        value: Windows Update
+    - uuid: 7d29463f7a8b4c30a0d328cc0b205aaf
+      name: 'Cleanup: Result'
+      type: TRAP
+      key: wh.cleanup.result
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+      valuemap:
+        name: Cleanup result
+      triggers:
+      - uuid: 50c00c8093d14e2196c4ab7f90d5009b
+        expression: last(/Windows Health/wh.cleanup.result)=3
+        name: Windows cleanup failed on {HOST.NAME}
+        priority: AVERAGE
+    - uuid: 026470f7c3e34b45860f572daab1e040
+      name: 'Cleanup: Total freed'
+      type: TRAP
+      key: wh.cleanup.total_mb
+      history: 90d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+      units: MB
+    - uuid: 32cf57979afe438c9961408f915306dc
+      name: 'Cleanup: SoftwareDistribution freed'
+      type: TRAP
+      key: wh.cleanup.softwaredistribution_mb
+      history: 90d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+      units: MB
+    - uuid: 1c69181eab064f75aba1994b5303cff8
+      name: 'Cleanup: Windows Temp freed'
+      type: TRAP
+      key: wh.cleanup.windows_temp_mb
+      history: 90d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+      units: MB
+    - uuid: 0ee2794dcf5d488abad208d94fe5848a
+      name: 'Cleanup: User Temp freed'
+      type: TRAP
+      key: wh.cleanup.user_temp_mb
+      history: 90d
+      value_type: FLOAT
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+      units: MB
+    - uuid: d0323718a5534f7e87697b0a733f3916
+      name: 'Cleanup: User profiles scanned'
+      type: TRAP
+      key: wh.cleanup.user_profiles
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+    - uuid: 3c170981d6814086883a650b19051d7c
+      name: 'Cleanup: Skipped locked/protected'
+      type: TRAP
+      key: wh.cleanup.skipped
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+    - uuid: 24895c9077e54e7eb19cd78f6b50e098
+      name: 'Cleanup: Errors'
+      type: TRAP
+      key: wh.cleanup.errors
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+    - uuid: 228c3745ba95490c93088456fe58f371
+      name: 'Cleanup: Last run'
+      type: TRAP
+      key: wh.cleanup.last_run
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Cleanup
+      units: unixtime
+    - uuid: 6af0d5bb06b64521b1b13be965999993
+      name: 'Reboot: Pending'
+      type: TRAP
+      key: wh.reboot.pending
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Reboot
+      valuemap:
+        name: Yes/No
+    - uuid: a11bab514721482daa33316f95a07819
+      name: 'Reboot: Scheduled'
+      type: TRAP
+      key: wh.reboot.scheduled
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Reboot
+      valuemap:
+        name: Yes/No
+    - uuid: 048d37b12f234b1d815aac44044a251f
+      name: 'Reboot: Delay'
+      type: TRAP
+      key: wh.reboot.delay
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Reboot
+      units: s
+    - uuid: 737393a3a6ab415fad3355b6b3ae434a
+      name: 'Reboot: Result'
+      type: TRAP
+      key: wh.reboot.result
+      history: 90d
+      value_type: UNSIGNED
+      tags:
+      - tag: Application
+        value: Windows Reboot
+      valuemap:
+        name: OK/Failed
+      triggers:
+      - uuid: 92dee7506909427db5896081b16582ef
+        expression: last(/Windows Health/wh.reboot.result)=0
+        name: Windows Health failed to schedule reboot on {HOST.NAME}
+        priority: HIGH
+    valuemaps:
+    - uuid: a6a88fcb3a6a410197b7dfb7d676fcf8
+      name: Yes/No
+      mappings:
+      - value: '0'
+        newvalue: 'No'
+      - value: '1'
+        newvalue: 'Yes'
+    - uuid: 8c59ff907e8a45b1866668171722f4c1
+      name: OK/Failed
+      mappings:
+      - value: '0'
+        newvalue: Failed
+      - value: '1'
+        newvalue: OK
+    - uuid: e6a2df4977ab4737aa07d9236a7bd6ed
+      name: Update result
+      mappings:
+      - value: '0'
+        newvalue: Unknown
+      - value: '1'
+        newvalue: Success
+      - value: '2'
+        newvalue: Failed
+      - value: '3'
+        newvalue: Partial success
+      - value: '4'
+        newvalue: No updates
+    - uuid: 15573cacdfc54ab6ba5c9687202b096f
+      name: Cleanup result
+      mappings:
+      - value: '1'
+        newvalue: Success
+      - value: '2'
+        newvalue: Success with skipped files
+      - value: '3'
+        newvalue: Failed
+    macros:
+    - macro: '{$WH.TEMPLATE.VERSION}'
+      value: 0.8.0
+      description: Windows Health template version
