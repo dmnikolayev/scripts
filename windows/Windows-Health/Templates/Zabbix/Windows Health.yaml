@@ -179,6 +179,16 @@ zabbix_export:
       - tag: Application
         value: Windows Cleanup
       units: MB
+    - uuid: 649c26bb8f19416ba269d7fd8a9757da
+      name: 'Cleanup: Extra paths freed'
+      type: TRAP
+      key: wh.cleanup.extra_mb
+      history: 90d
+      value_type: FLOAT
+      units: MB
+      tags:
+      - tag: Application
+        value: Windows Cleanup
     - uuid: d0323718a5534f7e87697b0a733f3916
       name: 'Cleanup: User profiles scanned'
       type: TRAP

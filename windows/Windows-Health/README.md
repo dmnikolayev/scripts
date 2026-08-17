@@ -45,6 +45,27 @@ Cleanup result:
 
 The Zabbix trigger fires only for `Failed`.
 
+
+### Host-local extra cleanup
+
+Optional server-specific cleanup rules live in `Config\ExtraCleanup.txt`. This file is ignored by Git, so each host can have its own rules without changing the shared toolkit.
+
+Copy `Config\ExtraCleanup.example.txt` to `Config\ExtraCleanup.txt` only on hosts that need extra cleanup.
+
+Format:
+
+```text
+Path|MinFileSizeMB|Recursive
+```
+
+Example:
+
+```text
+C:\Windows\ServiceProfiles\NetworkService\AppData\Local\Temp|1024|false
+```
+
+This removes only files **1 GB or larger**. The configured directory itself is never deleted. Locked/in-use files are `Skipped`; unexpected failures are `Errors`.
+
 ### Reboot
 
 ```text

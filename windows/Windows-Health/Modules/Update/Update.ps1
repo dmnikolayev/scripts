@@ -400,6 +400,103 @@ function Remove-WHOldUserTemp {
     }
 }
 
+
+function Remove-WHExtraCleanupFiles {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]$Rule
+    )
+
+    $path = [string]$Rule.Path
+    if ([string]::IsNullOrWhiteSpace($path)) {
+        throw 'Extra cleanup rule has an empty Path.'
+    }
+
+    if (-not (Test-Path -LiteralPath $path)) {
+        Write-WHLog -Level INFO -Message ("Extra cleanup path does not exist, skipped: {0}" -f $path)
+        return [pscustomobject]@{
+            FreedBytes = [int64]0
+            Matched = 0
+            Skipped = 0
+            Errors = 0
+        }
+    }
+
+    $minSizeMB = 0
+    if ($Rule.PSObject.Properties['MinFileSizeMB'] -and $null -ne $Rule.MinFileSizeMB) {
+        $minSizeMB = [double]$Rule.MinFileSizeMB
+    }
+
+    if ($minSizeMB -le 0) {
+        throw ("Extra cleanup rule for '{0}' must define MinFileSizeMB greater than 0." -f $path)
+    }
+
+    $recursive = $false
+    if ($Rule.PSObject.Properties['Recursive'] -and $null -ne $Rule.Recursive) {
+        $recursive = [bool]$Rule.Recursive
+    }
+
+    $minBytes = [int64]($minSizeMB * 1MB)
+    $freed = [int64]0
+    $matched = 0
+    $skipped = 0
+    $errors = 0
+
+    try {
+        $params = @{
+            LiteralPath = $path
+            File = $true
+            Force = $true
+            ErrorAction = 'Stop'
+        }
+        if ($recursive) { $params['Recurse'] = $true }
+
+        $files = @(Get-ChildItem @params | Where-Object {
+            $_.Length -ge $minBytes -and
+            -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
+        })
+    }
+    catch {
+        Write-WHLog -Level ERROR -Message ("Extra cleanup enumeration failed for {0}: {1}" -f $path, $_.Exception.Message) -Exception $_.Exception
+        return [pscustomobject]@{
+            FreedBytes = [int64]0
+            Matched = 0
+            Skipped = 0
+            Errors = 1
+        }
+    }
+
+    foreach ($file in $files) {
+        $matched++
+        $len = [int64]$file.Length
+
+        try {
+            Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop
+            $freed += $len
+            Write-WHLog -Message ("Extra cleanup removed {0:N2} MB file: {1}" -f ($len / 1MB), $file.FullName)
+        }
+        catch [System.UnauthorizedAccessException] {
+            $skipped++
+            Write-WHLog -Level INFO -Message ("Extra cleanup skipped locked/protected file: {0}" -f $file.FullName)
+        }
+        catch [System.IO.IOException] {
+            $skipped++
+            Write-WHLog -Level INFO -Message ("Extra cleanup skipped locked/in-use file: {0}" -f $file.FullName)
+        }
+        catch {
+            $errors++
+            Write-WHLog -Level ERROR -Message ("Extra cleanup failed for {0}: {1}" -f $file.FullName, $_.Exception.Message) -Exception $_.Exception
+        }
+    }
+
+    return [pscustomobject]@{
+        FreedBytes = [int64]$freed
+        Matched = [int]$matched
+        Skipped = [int]$skipped
+        Errors = [int]$errors
+    }
+}
+
 function Invoke-WHUpdateCleanup {
     [CmdletBinding()]
     param([Parameter(Mandatory=$true)]$Config)
@@ -409,6 +506,8 @@ function Invoke-WHUpdateCleanup {
     $sdFreed = [int64]0
     $winTempFreed = [int64]0
     $userTempFreed = [int64]0
+    $extraFreed = [int64]0
+    $extraMatched = 0
     $skipped = 0
     $errors = 0
     $profiles = 0
@@ -488,7 +587,60 @@ function Invoke-WHUpdateCleanup {
         }
     }
 
-    $total = $sdFreed + $winTempFreed + $userTempFreed
+    # Optional host-local extra cleanup rules.
+    # Config\ExtraCleanup.txt is intentionally ignored by Git.
+    # Format: Path|MinFileSizeMB|Recursive
+    $extraCleanupFile = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\Config\ExtraCleanup.txt'))
+
+    if (Test-Path -LiteralPath $extraCleanupFile) {
+        $lineNumber = 0
+        foreach ($line in @(Get-Content -LiteralPath $extraCleanupFile -ErrorAction Stop)) {
+            $lineNumber++
+            $text = [string]$line
+            if ([string]::IsNullOrWhiteSpace($text) -or $text.TrimStart().StartsWith('#')) { continue }
+
+            try {
+                $parts = @($text.Split('|'))
+                if ($parts.Count -ne 3) { throw 'Expected: Path|MinFileSizeMB|Recursive' }
+
+                $path = $parts[0].Trim()
+                [double]$minFileSizeMB = 0
+                if (-not [double]::TryParse($parts[1].Trim(), [Globalization.NumberStyles]::Float,
+                    [Globalization.CultureInfo]::InvariantCulture, [ref]$minFileSizeMB) -or $minFileSizeMB -le 0) {
+                    throw 'MinFileSizeMB must be greater than 0.'
+                }
+
+                [bool]$recursive = $false
+                if (-not [bool]::TryParse($parts[2].Trim(), [ref]$recursive)) {
+                    throw 'Recursive must be true or false.'
+                }
+
+                $rule = [pscustomobject]@{
+                    Path = $path
+                    MinFileSizeMB = $minFileSizeMB
+                    Recursive = $recursive
+                }
+
+                $r = Remove-WHExtraCleanupFiles -Rule $rule
+                $extraFreed += $r.FreedBytes
+                $extraMatched += $r.Matched
+                $skipped += $r.Skipped
+                $errors += $r.Errors
+
+                Write-WHLog -Message ("Extra cleanup completed for {0}. Matched={1}; freed={2:N0} MB; skipped={3}; errors={4}" -f `
+                    $path, $r.Matched, ($r.FreedBytes / 1MB), $r.Skipped, $r.Errors)
+            }
+            catch {
+                $errors++
+                Write-WHLog -Level ERROR -Message ("Invalid ExtraCleanup.txt rule at line {0}: {1}" -f $lineNumber, $_.Exception.Message) -Exception $_.Exception
+            }
+        }
+    }
+    else {
+        Write-WHLog -Message 'No local ExtraCleanup.txt found; extra cleanup skipped.'
+    }
+
+    $total = $sdFreed + $winTempFreed + $userTempFreed + $extraFreed
     $resultCode = if ($errors -gt 0) { 3 } elseif ($skipped -gt 0) { 2 } else { 1 }
 
     Write-WHLog -Message ("Cleanup completed. Total freed={0:N0} MB; skipped={1}; errors={2}; result={3}" -f `
@@ -501,6 +653,8 @@ function Invoke-WHUpdateCleanup {
         SoftwareDistributionMB = [math]::Round(($sdFreed / 1MB),2)
         WindowsTempMB = [math]::Round(($winTempFreed / 1MB),2)
         UserTempMB = [math]::Round(($userTempFreed / 1MB),2)
+        ExtraCleanupMB = [math]::Round(($extraFreed / 1MB),2)
+        ExtraFilesMatched = [int]$extraMatched
         UserProfilesScanned = [int]$profiles
         Skipped = [int]$skipped
         Errors = [int]$errors
@@ -518,6 +672,7 @@ function Convert-WHCleanupResultToMetrics {
         [pscustomobject]@{ Key='wh.cleanup.softwaredistribution_mb'; Value=$Result.SoftwareDistributionMB },
         [pscustomobject]@{ Key='wh.cleanup.windows_temp_mb'; Value=$Result.WindowsTempMB },
         [pscustomobject]@{ Key='wh.cleanup.user_temp_mb'; Value=$Result.UserTempMB },
+        [pscustomobject]@{ Key='wh.cleanup.extra_mb'; Value=$Result.ExtraCleanupMB },
         [pscustomobject]@{ Key='wh.cleanup.user_profiles'; Value=$Result.UserProfilesScanned },
         [pscustomobject]@{ Key='wh.cleanup.skipped'; Value=$Result.Skipped },
         [pscustomobject]@{ Key='wh.cleanup.errors'; Value=$Result.Errors },

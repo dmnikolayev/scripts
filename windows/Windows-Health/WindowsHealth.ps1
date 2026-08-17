@@ -180,6 +180,7 @@ finally {
                     Write-Output ('SoftwareDist... {0:N2} MB' -f $result.SoftwareDistributionMB)
                     Write-Output ('Windows Temp... {0:N2} MB' -f $result.WindowsTempMB)
                     Write-Output ('User Temp...... {0:N2} MB' -f $result.UserTempMB)
+                    Write-Output ('Extra cleanup.. {0:N2} MB' -f $result.ExtraCleanupMB)
                     Write-Output ('Profiles....... {0}' -f $result.UserProfilesScanned)
                     Write-Output ('Freed total.... {0:N2} MB' -f $result.TotalMB)
                     Write-Output ('Skipped........ {0}' -f $result.Skipped)
